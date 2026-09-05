@@ -1,5 +1,7 @@
 # Remindi
 
+Repository: https://git.phrk.org/pub/Remindi
+
 Remindi is a single-owner, self-hosted reminder and obligation service for
 humans and AI agents. It keeps work that must survive a later time, session,
 continuation, active goal, or safe named condition in a durable SQLite
@@ -1925,3 +1927,16 @@ not consume, this README calls out that implementation gap.
 Remindi is licensed under the [MIT License](LICENSE).
 
 Copyright © 2026 Shane Burger.
+
+
+## Automated Forgejo releases
+
+The [Release action](https://git.phrk.org/pub/Remindi/actions) checks and builds Linux AMD64 archives plus a Linux container. It runs on the `linux-amd64` Forgejo runners. Archive names are `Remindi.vVERSION-linux-amd64.tar.gz`.
+
+Run the workflow manually with **Major** to increment the middle version component and reset the last (`0.1.7` → `0.2.0`), **minor** to increment the last (`0.1.7` → `0.1.8`), or **retry** to publish the current version without another bump. Use **retry** for the initial release or to resume a failed publication. Rerunning the original failed job also retains its version.
+
+A default-branch push releases only when an application version changes. Change `VERSION`; the workflow synchronizes the configured application manifests and lockfile entries. Ordinary source/documentation pushes do not release. Checks and all builds finish before the workflow commits version changes. Release notes include up to ten commit subjects since the preceding release.
+
+Downloads appear on the [releases page](https://git.phrk.org/pub/Remindi/releases). Container tags are `git.phrk.org/pub/remindi:vVERSION` and `git.phrk.org/pub/remindi:latest`; `latest` changes only after the required release artifacts have uploaded. Container repository names use lowercase as required by the registry.
+
+The repository requires Actions secrets `RELEASE_TOKEN` (repository/release/package write access) and `RELEASE_USER` (its account name). Keep values in the secret store. The runner's existing Podman socket must be available at `/var/run/docker.sock`; the workflow uses its remote API. Build commands, version fields, and required output filenames are declared in `.forgejo/release.json`.

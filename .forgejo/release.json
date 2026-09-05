@@ -1,0 +1,36 @@
+{
+  "version_files": [
+    {
+      "path": "Cargo.toml",
+      "pattern": "(?ms)^\\[package\\](?:(?!^\\[).)*?^version\\s*=\\s*\"(?P<version>[^\"\\r\\n]+)\"",
+      "count": 1
+    },
+    {
+      "path": "Cargo.lock",
+      "pattern": "(?m)^name = \"remindi\"\\r?\\nversion = \"(?P<version>[^\"\\r\\n]+)\"",
+      "count": 1
+    },
+    {
+      "path": "compose.yaml",
+      "pattern": "(?m)^    image: remindi:(?P<version>[^\\s\\r\\n]+)$",
+      "count": 1
+    }
+  ],
+  "checks": [
+    "bash .forgejo/setup-rust.sh",
+    "bash .forgejo/check-rust.sh"
+  ],
+  "build": [
+    "bash .forgejo/build-rust.sh"
+  ],
+  "artifacts": [
+    ".release-dist/${RELEASE_NAME}.v${RELEASE_VERSION}-linux-amd64.tar.gz"
+  ],
+  "container": {
+    "dockerfile": "Dockerfile",
+    "context": ".",
+    "checks": [
+      "bash .forgejo/smoke-container.sh"
+    ]
+  }
+}

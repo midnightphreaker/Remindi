@@ -2,3 +2,6 @@
 /target/
 /.codex/
 .env
+/.release-dist/
+/.release-venv/
+/.release-state/

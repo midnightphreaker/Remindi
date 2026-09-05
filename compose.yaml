@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: remindi:1.0.0
+    image: remindi:0.1.0
     restart: unless-stopped
     init: true
     ports:

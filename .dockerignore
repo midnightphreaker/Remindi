@@ -8,3 +8,7 @@ target
 *.db-wal
 .env
 .env.*
+/.release-dist/
+/.release-venv/
+/.release-state/
+/.codex/
