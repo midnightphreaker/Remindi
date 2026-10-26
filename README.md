@@ -12,6 +12,8 @@ The important distinction is that Remindi remembers and evaluates obligations;
 it does not execute them. A disconnected MCP client cannot be woken by an MCP
 server. Agents therefore pull ready work with `remindi_check`, while the
 background scheduler advances time- and condition-based state between checks.
+OpenCode V2 can also use the optional [delivery bridge](#opencode-v2-delivery-bridge)
+to receive scheduled reminders in its session through client-side polling.
 
 Both surfaces require private credentials. The MCP bearer token and WebUI
 username/password are deliberately separate.
@@ -22,6 +24,7 @@ username/password are deliberately separate.
 - [How Remindi works](#how-remindi-works)
 - [Quick start](#quick-start)
 - [Connect an MCP client](#connect-an-mcp-client)
+- [OpenCode V2 delivery bridge](#opencode-v2-delivery-bridge)
 - [Core concepts](#core-concepts)
 - [MCP tool reference](#mcp-tool-reference)
 - [Agent pull workflow](#agent-pull-workflow)
@@ -63,18 +66,22 @@ Its version 1 feature set includes:
 - SQLite-aware verified backup, upload, download, and guarded restore;
 - hardened single-container deployment with a read-only root filesystem.
 
+The repository also includes an optional OpenCode V2 reminder-delivery plugin
+in [`integrations/opencode`](integrations/opencode/README.md).
+
 Remindi intentionally does **not** provide:
 
 - arbitrary command, shell, or script execution;
 - OAuth for MCP;
-- outbound notification delivery or a wake-up channel for disconnected agents;
+- server-originated outbound notifications or a wake-up channel for disconnected agents;
 - multi-tenancy, high availability, or multiple writers to one database;
 - host service, Docker socket, or container control;
 - arbitrary URLs, hosts, ports, or paths supplied by reminder creators;
 - calendar/RRULE recurrence.
 
-Delivery event names exist in the history schema for compatibility, but version
-1 has no delivery subsystem. Pull checks remain mandatory.
+Delivery event names exist in the history schema for compatibility, but the
+version 1 server has no delivery subsystem. The OpenCode bridge polls MCP from
+the client; contextual pull checks remain necessary.
 
 ## How Remindi works
 
@@ -280,22 +287,23 @@ shared through `.mcp.json`; private local and user scopes are stored in
 
 See the [official Claude Code MCP documentation](https://code.claude.com/docs/en/mcp).
 
-### OpenCode
+### OpenCode V2
 
-Add the `mcp` member to project-root `opencode.json`, or to global
-`~/.config/opencode/opencode.json`:
+Add the server under `mcp.servers` in project-root `opencode.jsonc`, or in global
+`~/.config/opencode/opencode.jsonc`:
 
 ```json
 {
   "$schema": "https://opencode.ai/config.json",
   "mcp": {
-    "remindi": {
-      "type": "remote",
-      "url": "https://mcp.example.com/remindi",
-      "enabled": true,
-      "oauth": false,
-      "headers": {
-        "Authorization": "Bearer {env:REMINDI_MCP_TOKEN}"
+    "servers": {
+      "remindi": {
+        "type": "remote",
+        "url": "https://mcp.example.com/remindi",
+        "oauth": false,
+        "headers": {
+          "Authorization": "Bearer {env:REMINDI_MCP_TOKEN}"
+        }
       }
     }
   }
@@ -304,11 +312,10 @@ Add the `mcp` member to project-root `opencode.json`, or to global
 
 OpenCode uses `{env:VAR}` interpolation. Keep `oauth: false`: Remindi uses the
 configured bearer header, not OAuth discovery. Verify with
-`opencode mcp list`; `opencode mcp debug remindi` can help diagnose a failed
-connection.
+`opencode mcp list` or inspect the connection through `/mcps`.
 
-See the [OpenCode MCP server documentation](https://opencode.ai/docs/mcp-servers/)
-and [configuration documentation](https://opencode.ai/docs/config/).
+See the [OpenCode V2 MCP documentation](https://opencode.ai/v2/docs/mcp-servers/)
+and [configuration documentation](https://opencode.ai/v2/docs/config/).
 
 ### Cursor
 
@@ -354,6 +361,66 @@ If a client cannot connect:
    when the client already adds it.
 6. Check `/health/live`, then the Remindi and reverse-proxy logs.
 7. If the MCP workload was intentionally stopped in the WebUI, start it again.
+
+## OpenCode V2 delivery bridge
+
+The optional `phrk-remindi` plugin polls Remindi every **10 seconds without an
+LLM call**. It looks ahead ten seconds and rechecks at the due time, delivering
+the reminder message and instructions into the intended OpenCode session.
+No Remindi server changes are required.
+
+With Node.js 22 or newer, install the plugin dependencies from this repository:
+
+```sh
+npm --prefix integrations/opencode ci --ignore-scripts
+```
+
+Add a plugin entry to the target project's `opencode.jsonc`, preserving its
+existing MCP and plugin settings:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugins": [
+    {
+      "package": "/absolute/path/to/Remindi/integrations/opencode",
+      "options": {
+        "url": "https://mcp.example.com/remindi",
+        "projectID": "/absolute/path/to/your-project",
+        "tokenEnv": "REMINDI_MCP_TOKEN"
+      }
+    }
+  ]
+}
+```
+
+Replace the paths and endpoint; `projectID` must exactly match the reminders'
+`project_id`. The OpenCode service must inherit the named token environment
+variable. The plugin opens its own MCP connection rather than reusing the
+configured MCP connection. Its local entry point is `index.js`; reload or
+restart OpenCode after configuration changes, then verify `phrk-remindi` is
+active before relying on delivery.
+
+When creating a reminder, pass the actual OpenCode session ID as `session_id`
+to `remindi_add`; Remindi stores it as `source_session_id`. An optional plugin
+`fallbackSessionID` explicitly routes reminders without that field. The target
+must be an unarchived session in the plugin's directory; it never guesses the
+current session. Use one plugin instance per project.
+
+- Delivery uses `session.synthetic` with `delivery: "steer", resume: false`.
+  An active run can receive it; an idle session waits for its next run.
+- Persistent occurrence records suppress repeat delivery. The plugin does not
+  acknowledge, complete or reschedule reminders; the agent still performs the
+  obligation and records its result through Remindi.
+- Cancellations and snoozes are re-read before delivery. Network/event-loop
+  delays and multiple instances prevent a strict real-time or exactly-once
+  guarantee.
+- Keep `remindi_check` at lifecycle boundaries and for condition/lifecycle
+  triggers without a concrete scheduled time. Delivery is not a replacement
+  for context evaluation or evidence-backed completion.
+
+See the [integration README](integrations/opencode/README.md) for detailed
+behaviour, tests and live-verification notes.
 
 ## Core concepts
 
