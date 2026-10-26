@@ -2,6 +2,7 @@
 
 Local plugin for scheduled Remindi reminders. No Remindi server changes are
 required. Polling uses an MCP client, not an LLM.
+The local directory entry is `index.js`, as required by OpenCode's local loader.
 
 ## Setup
 
@@ -58,7 +59,12 @@ Use one plugin instance per project to avoid competing deliveries.
 `npm test` runs focused automated tests; `npm run check` checks JavaScript syntax.
 SDK dependencies are pinned in `package-lock.json`. The entry uses
 `Plugin.define` from `@opencode/plugin` 2.0.3 and the MCP SDK 1.32.2.
-This integration has not been enabled in a live OpenCode session by its tests.
+Unit tests do not enable the plugin. On 2026-10-26, the local integration was
+enabled for `/Workspace/AGENTS` on OpenCode 2.1.2 and a real test reminder plus
+the recurring scope guard reached the intended session. The service reported
+`phrk-remindi` active. On this installation, inspect the running service with
+`opencode api --server http://127.0.0.1:8080`; the CLI's default connection
+selected a different server during verification.
 
 API references: [V2 plugins](https://opencode.ai/v2/docs/build/plugins),
 [V2 session API](https://opencode.ai/v2/docs/api), and
