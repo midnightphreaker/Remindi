@@ -1,0 +1,13 @@
+{
+  "name": "@phrk/opencode-remindi",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": "./plugin.js",
+  "scripts": { "test": "node --test", "check": "node --check plugin.js && node --check bridge.js && node --check adapter.js" },
+  "engines": { "node": ">=22" },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "@opencode/plugin": "2.0.3"
+  }
+}
