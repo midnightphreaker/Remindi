@@ -23,6 +23,12 @@ preserving existing settings:
 }
 ```
 
+or
+
+```bash
+cd /path/to/Remindi/integrations/pi && pi install $PWD
+```
+
 Alternatively, try it without changing settings:
 
 ```sh
