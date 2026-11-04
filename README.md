@@ -14,6 +14,8 @@ server. Agents therefore pull ready work with `remindi_check`, while the
 background scheduler advances time- and condition-based state between checks.
 OpenCode V2 can also use the optional [delivery bridge](#opencode-v2-delivery-bridge)
 to receive scheduled reminders in its session through client-side polling.
+Pi has a native [Remindi extension](integrations/pi/README.md) with the same
+client-polling approach and current-session delivery.
 
 Both surfaces require private credentials. The MCP bearer token and WebUI
 username/password are deliberately separate.
@@ -66,8 +68,10 @@ Its version 1 feature set includes:
 - SQLite-aware verified backup, upload, download, and guarded restore;
 - hardened single-container deployment with a read-only root filesystem.
 
-The repository also includes an optional OpenCode V2 reminder-delivery plugin
-in [`integrations/opencode`](integrations/opencode/README.md).
+The repository also includes optional reminder-delivery integrations for
+[OpenCode V2](integrations/opencode/README.md) and
+[Pi](integrations/pi/README.md). Both poll MCP without an LLM call; neither
+acknowledges reminders or starts an idle model turn.
 
 Remindi intentionally does **not** provide:
 
